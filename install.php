@@ -40,6 +40,15 @@ $auto_detected_url = 'https://' . ($_SERVER['HTTP_HOST'] ?? 'mi.dominio.com') . 
 $auto_detected_url = rtrim($auto_detected_url, '/');
 $auto_detected_base_path = $_SERVER['DOCUMENT_ROOT'] . $script_path;
 
+// Extraer dominio principal por defecto para redirección 404
+$default_404_domain = 'https://' . ($_SERVER['HTTP_HOST'] ?? 'mi.dominio.com');
+// Remover subdominios si existen
+$host_parts = explode('.', $_SERVER['HTTP_HOST'] ?? 'mi.dominio.com');
+if (count($host_parts) > 2) {
+    // Tomar solo los últimos dos partes para el dominio principal (ej: peu.net)
+    $default_404_domain = 'https://' . $host_parts[count($host_parts)-2] . '.' . $host_parts[count($host_parts)-1];
+}
+
 if ($_POST) {
     // Validar y procesar instalación
     $domain = trim($_POST['domain'] ?? '');
@@ -47,10 +56,12 @@ if ($_POST) {
     $admin_user = trim($_POST['admin_user'] ?? '');
     $admin_pass = trim($_POST['admin_pass'] ?? '');
     $force_https = isset($_POST['force_https']);
+    $redirect_404 = trim($_POST['redirect_404'] ?? $default_404_domain);
     
     // Limpiar y normalizar URLs
     $domain = rtrim($domain, '/');
     $base_url = $domain;
+    $redirect_404 = rtrim($redirect_404, '/');
     
     // Si estamos en una subcarpeta, detectarla automáticamente
     if ($script_path !== '/' && strpos($domain, $script_path) === false) {
@@ -63,9 +74,14 @@ if ($_POST) {
     if (empty($admin_user)) $errors[] = "El usuario admin es obligatorio";
     if (empty($admin_pass)) $errors[] = "La contraseña es obligatoria";
     if (strlen($admin_pass) < 8) $errors[] = "La contraseña debe tener al menos 8 caracteres";
+    if (empty($redirect_404)) $errors[] = "La URL de redirección 404 es obligatoria";
     
     if (!preg_match('/^https?:\/\//', $domain)) {
         $errors[] = "El dominio debe incluir http:// o https://";
+    }
+    
+    if (!preg_match('/^https?:\/\//', $redirect_404)) {
+        $errors[] = "La URL de redirección 404 debe incluir http:// o https://";
     }
     
     if (!is_dir($base_path) || !is_writable($base_path)) {
@@ -96,6 +112,7 @@ if ($_POST) {
                 'password' => password_hash($admin_pass, PASSWORD_DEFAULT),
                 'admin_user' => $admin_user,
                 'base_url' => $base_url,
+                'redirect_404' => $redirect_404,
                 'force_https' => $force_https
             ];
             
@@ -106,7 +123,7 @@ if ($_POST) {
                 chmod($secure_config_file, 0600);
                 
                 // Crear config.php principal
-                $config_content = generateConfigContent($base_url, $base_path, $secure_config_file, $admin_user);
+                $config_content = generateConfigContent($base_url, $base_path, $secure_config_file, $admin_user, $redirect_404);
                 
                 if (file_put_contents('config.php', $config_content)) {
                     // Manejar data.json - preservar si existe
@@ -192,7 +209,7 @@ if ($_POST) {
 }
 
 // Función para generar contenido de config.php
-function generateConfigContent($base_url, $base_path, $secure_config_file, $admin_user) {
+function generateConfigContent($base_url, $base_path, $secure_config_file, $admin_user, $redirect_404) {
     return "<?php
 // Configuración automática - Instalador
 \$secure_config_path = '$secure_config_file';
@@ -205,6 +222,7 @@ if (!file_exists(\$secure_config_path)) {
 
 define('APP_URL', '$base_url');
 define('PANEL_URL', APP_URL . '/panel');
+define('REDIRECT_404_URL', '$redirect_404');
 define('DATA_PATH', \$secure_config['data_path']);
 define('ERROR_PATH', \$secure_config['error_path']);
 define('SESSION_NAME', \$secure_config['session_name']);
@@ -214,6 +232,7 @@ define('ADMIN_USER', \$secure_config['admin_user']);
 
 // Log para depuración
 error_log('APP_URL: ' . APP_URL);
+error_log('REDIRECT_404_URL: ' . REDIRECT_404_URL);
 error_log('DATA_PATH: ' . DATA_PATH);
 error_log('SECURE_CONFIG_PATH: ' . SECURE_CONFIG_PATH);
 
@@ -375,6 +394,7 @@ function generateHtaccess($force_https, $script_path) {
                 <h4>✅ Instalación Completa</h4>
                 <p><strong>Usuario:</strong> <?= htmlspecialchars($_POST['admin_user']) ?></p>
                 <p><strong>URL Base:</strong> <?= htmlspecialchars($base_url) ?></p>
+                <p><strong>Redirección 404:</strong> <?= htmlspecialchars($redirect_404) ?></p>
                 <p><strong>Panel de control:</strong> <a href="<?= htmlspecialchars($base_url) ?>/panel" target="_blank"><?= htmlspecialchars($base_url) ?>/panel</a></p>
                 
                 <div class="alert alert-warning mt-3">
@@ -442,6 +462,16 @@ function generateHtaccess($force_https, $script_path) {
                     </div>
                 </div>
 
+                <!-- Redirección 404 -->
+                <div class="mb-3">
+                    <label class="form-label">Redirección 404 *</label>
+                    <input type="url" class="form-control" name="redirect_404" value="<?= htmlspecialchars($_POST['redirect_404'] ?? $default_404_domain) ?>" required placeholder="https://dominio-principal.com">
+                    <small class="form-text text-muted">
+                        URL a la que se redirigirá cuando un enlace no exista.<br>
+                        <strong>Recomendado:</strong> Tu dominio principal sin subdominios (ej: https://peu.net)
+                    </small>
+                </div>
+
                 <!-- Opción forzar HTTPS -->
                 <div class="mb-3 form-check">
                     <input type="checkbox" class="form-check-input" id="force_https" name="force_https" <?= (isset($_POST['force_https']) || !isset($_POST)) ? 'checked' : '' ?>>
@@ -454,6 +484,7 @@ function generateHtaccess($force_https, $script_path) {
                     <h6>🔍 URLs que se generarán:</h6>
                     <p><strong>URL Base:</strong> <code id="url-preview-base"><?= htmlspecialchars($auto_detected_url) ?></code></p>
                     <p><strong>Panel de control:</strong> <code id="url-preview-panel"><?= htmlspecialchars($auto_detected_url) ?>/panel</code></p>
+                    <p><strong>Redirección 404:</strong> <code id="url-preview-404"><?= htmlspecialchars($default_404_domain) ?></code></p>
                     <p><strong>Ejemplo de enlace:</strong> <code id="url-preview-link"><?= htmlspecialchars($auto_detected_url) ?>/abc123</code></p>
                 </div>
 
@@ -464,6 +495,7 @@ function generateHtaccess($force_https, $script_path) {
                         <li><strong>Backups automáticos:</strong> Se crea un backup cada vez que se modifica data.json</li>
                         <li><strong>Preservación de datos:</strong> Si existe data.json previo, se preserva y valida</li>
                         <li><strong>Interfaz moderna:</strong> Panel de control responsive y fácil de usar</li>
+                        <li><strong>Redirección 404 personalizable:</strong> Define a dónde ir cuando un enlace no existe</li>
                     </ul>
                 </div>
 
@@ -480,6 +512,29 @@ function generateHtaccess($force_https, $script_path) {
             document.getElementById('url-preview-base').textContent = baseUrl;
             document.getElementById('url-preview-panel').textContent = baseUrl + '/panel';
             document.getElementById('url-preview-link').textContent = baseUrl + '/abc123';
+        });
+
+        // Actualizar redirección 404 automáticamente
+        document.querySelector('input[name="domain"]').addEventListener('input', function() {
+            const domain = this.value;
+            if (domain) {
+                try {
+                    const url = new URL(domain);
+                    const hostParts = url.hostname.split('.');
+                    let mainDomain = url.hostname;
+                    
+                    // Si hay más de 2 partes, tomar solo el dominio principal
+                    if (hostParts.length > 2) {
+                        mainDomain = hostParts.slice(-2).join('.');
+                    }
+                    
+                    const redirect404 = url.protocol + '//' + mainDomain;
+                    document.querySelector('input[name="redirect_404"]').value = redirect404;
+                    document.getElementById('url-preview-404').textContent = redirect404;
+                } catch (e) {
+                    // Si no es una URL válida, no hacer nada
+                }
+            }
         });
     </script>
 </body>
