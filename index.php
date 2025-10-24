@@ -16,6 +16,8 @@ if ($script_path !== '/' && strpos($request_uri, $script_path) === 0) {
 $slug = trim($request_uri, '/');
 error_log('Slug solicitado: ' . $slug);
 
+error_log('Redirección 404 configurada: ' . REDIRECT_404_URL);
+
 if (empty($slug) || $slug === 'panel') {
     error_log('Redirigiendo a PANEL_URL: ' . PANEL_URL);
     header('Location: ' . PANEL_URL);
@@ -49,7 +51,7 @@ if ($redirect) {
     }
 }
 
-// 404 - Mostrar página de error con cuenta regresiva
+// 404 - Mostrar página de error con cuenta regresiva A LA URL CONFIGURADA
 error_log('404 - Slug no encontrado: ' . $slug);
 http_response_code(404);
 ?>
@@ -70,8 +72,8 @@ http_response_code(404);
         <h1 class="display-1 text-danger">404</h1>
         <h2>Enlace no encontrado</h2>
         <p>El enlace que buscas no existe o ha sido eliminado.</p>
-        <p>Serás redirigido a <a href="<?= APP_URL ?>"><?= htmlspecialchars(parse_url(APP_URL, PHP_URL_HOST)) ?></a> en <span id="countdown">5</span> segundos.</p>
-        <a href="<?= APP_URL ?>" class="btn btn-primary">Ir ahora</a>
+        <p>Serás redirigido a <a href="<?= REDIRECT_404_URL ?>"><?= htmlspecialchars(parse_url(REDIRECT_404_URL, PHP_URL_HOST)) ?></a> en <span id="countdown">5</span> segundos.</p>
+        <a href="<?= REDIRECT_404_URL ?>" class="btn btn-primary">Ir ahora</a>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
@@ -82,7 +84,7 @@ http_response_code(404);
             countdownElement.textContent = seconds;
             if (seconds <= 0) {
                 clearInterval(countdown);
-                window.location.href = '<?= APP_URL ?>';
+                window.location.href = '<?= REDIRECT_404_URL ?>';
             }
         }, 1000);
     </script>
