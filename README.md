@@ -1,4 +1,4 @@
-# 🚀 URL Shortener
+# 🚀 Links - URL Shortener
 
 ## 📋 Requisitos del Sistema
 - PHP 7.4 o superior
@@ -86,6 +86,7 @@ dig links.tudominio.com CNAME
 - ✅ Configuración completamente dinámica
 - ✅ Seguridad mejorada con archivos de configuración separados
 - ✅ Interfaz responsive con Bootstrap
+- ✅ Preview de links en redes sociales
 - ✅ Sistema de backups automático
 - ✅ Estadísticas de clicks
 - ✅ Gestión completa de enlaces
