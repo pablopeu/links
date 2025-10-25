@@ -18,6 +18,20 @@ function requireAuth(): void {
 
 requireAuth();
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
+    $data = loadData();
+    $slug = $_POST['delete'];
+    if (isset($data['redirects'][$slug])) {
+        unset($data['redirects'][$slug]);
+        $data['stats']['total_redirects'] = count($data['redirects']);
+        if (saveData($data)) {
+            // Redirigir para evitar reenvío del formulario
+            header('Location: dashboard.php?deleted=1');
+            exit;
+        }
+    }
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['change_password'])) {
     $current_password = $_POST['current_password'] ?? '';
     $new_password = $_POST['new_password'] ?? '';
@@ -70,6 +84,33 @@ $redirects = $data['redirects'];
     <title>Dashboard - <?= htmlspecialchars(APP_URL) ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .preview-badge { font-size: 0.7em; }
+        .copy-btn { 
+            opacity: 0.7; 
+            transition: all 0.3s ease;
+            padding: 2px 6px;
+            font-size: 0.8em;
+        }
+        .copy-btn:hover { 
+            opacity: 1; 
+            transform: scale(1.1);
+        }
+        .table-footer { 
+            background-color: #343a40; 
+            height: 15px; 
+            border-bottom-left-radius: 0.375rem;
+            border-bottom-right-radius: 0.375rem;
+        }
+        .link-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .short-url {
+            flex-grow: 1;
+        }
+    </style>
 </head>
 <body class="bg-light">
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
@@ -88,6 +129,27 @@ $redirects = $data['redirects'];
         <div class="row">
             <div class="col-md-12">
                 <h2><i class="fas fa-tachometer-alt"></i> Panel de Control</h2>
+
+                <?php if (isset($_GET['deleted']) && $_GET['deleted'] == '1'): ?>
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <i class="fas fa-check-circle"></i> Enlace eliminado correctamente.
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                <?php endif; ?>
+
+                <?php if (isset($_GET['updated']) && $_GET['updated'] == '1'): ?>
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <i class="fas fa-check-circle"></i> Enlace actualizado correctamente.
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                <?php endif; ?>
+
+                <?php if (isset($_GET['success']) && $_GET['success'] == '1'): ?>
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <i class="fas fa-check-circle"></i> Enlace creado correctamente.
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                <?php endif; ?>
 
                 <!-- Modal para cambiar contraseña -->
                 <div class="modal fade" id="changePasswordModal" tabindex="-1" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
@@ -159,8 +221,8 @@ $redirects = $data['redirects'];
                     <div class="col-md-3">
                         <div class="card text-white bg-warning">
                             <div class="card-body">
-                                <h5><i class="fas fa-cog"></i> Estado</h5>
-                                <h3>Activo</h3>
+                                <h5><i class="fas fa-share-alt"></i> Preview</h5>
+                                <h3><?= ENABLE_PREVIEW ? '✅ Activado' : '❌ Desactivado' ?></h3>
                             </div>
                         </div>
                     </div>
@@ -190,6 +252,9 @@ $redirects = $data['redirects'];
                                             <th>Enlace Corto</th>
                                             <th>Destino</th>
                                             <th>Descripción</th>
+                                            <?php if (ENABLE_PREVIEW): ?>
+                                            <th>Preview</th>
+                                            <?php endif; ?>
                                             <th>Clicks</th>
                                             <th>Fecha</th>
                                             <th>Acciones</th>
@@ -199,10 +264,19 @@ $redirects = $data['redirects'];
                                         <?php foreach ($redirects as $slug => $redirect): ?>
                                             <tr>
                                                 <td>
-                                                    <a href="<?= APP_URL ?>/<?= $slug ?>" target="_blank" class="text-decoration-none">
-                                                        <i class="fas fa-external-link-alt text-primary"></i>
-                                                        <?= htmlspecialchars(APP_URL) ?>/<?= $slug ?>
-                                                    </a>
+                                                    <div class="link-container">
+                                                        <div class="short-url">
+                                                            <a href="<?= APP_URL ?>/<?= $slug ?>" target="_blank" class="text-decoration-none">
+                                                                <i class="fas fa-external-link-alt text-primary"></i>
+                                                                <?= htmlspecialchars(APP_URL) ?>/<?= $slug ?>
+                                                            </a>
+                                                        </div>
+                                                        <button class="btn btn-sm btn-outline-secondary copy-btn" 
+                                                                onclick="copyToClipboard('<?= APP_URL ?>/<?= $slug ?>', this)" 
+                                                                title="Copiar enlace al portapapeles">
+                                                            <i class="fas fa-copy"></i>
+                                                        </button>
+                                                    </div>
                                                 </td>
                                                 <td>
                                                     <small class="text-muted">
@@ -210,6 +284,19 @@ $redirects = $data['redirects'];
                                                     </small>
                                                 </td>
                                                 <td><?= htmlspecialchars($redirect['description'] ?? '-') ?></td>
+                                                <?php if (ENABLE_PREVIEW): ?>
+                                                <td>
+                                                    <?php if (isset($redirect['metatags'])): ?>
+                                                        <span class="badge bg-success preview-badge" title="Preview configurado">
+                                                            <i class="fas fa-check"></i> Sí
+                                                        </span>
+                                                    <?php else: ?>
+                                                        <span class="badge bg-secondary preview-badge" title="Sin preview configurado">
+                                                            <i class="fas fa-times"></i> No
+                                                        </span>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <?php endif; ?>
                                                 <td>
                                                     <span class="badge bg-primary"><?= $redirect['clicks'] ?? 0 ?></span>
                                                 </td>
@@ -222,15 +309,20 @@ $redirects = $data['redirects'];
                                                     <a href="edit.php?slug=<?= urlencode($slug) ?>" class="btn btn-sm btn-outline-primary">
                                                         <i class="fas fa-edit"></i>
                                                     </a>
-                                                    <button onclick="deleteLink('<?= $slug ?>')" class="btn btn-sm btn-outline-danger">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
+                                                    <form method="POST" action="" class="d-inline" onsubmit="return confirm('¿Eliminar este enlace? Esta acción no se puede deshacer.')">
+                                                        <input type="hidden" name="delete" value="<?= $slug ?>">
+                                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    </form>
                                                 </td>
                                             </tr>
                                         <?php endforeach; ?>
                                     </tbody>
                                 </table>
                             </div>
+                            <!-- Barra negra decorativa -->
+                            <div class="table-footer"></div>
                         </div>
                     </div>
                 <?php endif; ?>
@@ -240,18 +332,53 @@ $redirects = $data['redirects'];
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        function deleteLink(slug) {
-            if (confirm('¿Eliminar este enlace? Esta acción no se puede deshacer.')) {
-                fetch('?delete=' + slug, { method: 'POST' })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            location.reload();
-                        } else {
-                            alert('Error: ' + data.error);
-                        }
-                    });
-            }
+        // Función para copiar al portapapeles - CORREGIDA
+        function copyToClipboard(text, element) {
+            const button = element;
+            
+            navigator.clipboard.writeText(text).then(function() {
+                // Mostrar feedback visual
+                const originalHTML = button.innerHTML;
+                
+                button.innerHTML = '<i class="fas fa-check text-success"></i>';
+                button.classList.remove('btn-outline-secondary');
+                button.classList.add('btn-outline-success');
+                
+                setTimeout(() => {
+                    button.innerHTML = originalHTML;
+                    button.classList.remove('btn-outline-success');
+                    button.classList.add('btn-outline-secondary');
+                }, 1500);
+                
+            }).catch(function(err) {
+                console.error('Error al copiar: ', err);
+                // Fallback para navegadores más antiguos
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    
+                    // Mostrar feedback visual también para el fallback
+                    const originalHTML = button.innerHTML;
+                    
+                    button.innerHTML = '<i class="fas fa-check text-success"></i>';
+                    button.classList.remove('btn-outline-secondary');
+                    button.classList.add('btn-outline-success');
+                    
+                    setTimeout(() => {
+                        button.innerHTML = originalHTML;
+                        button.classList.remove('btn-outline-success');
+                        button.classList.add('btn-outline-secondary');
+                    }, 1500);
+                    
+                } catch (err) {
+                    console.error('Fallback: Error al copiar', err);
+                    alert('Error al copiar el enlace');
+                }
+                document.body.removeChild(textArea);
+            });
         }
 
         // Validación en tiempo real de contraseñas
@@ -287,26 +414,15 @@ $redirects = $data['redirects'];
             passwordMatchIcon.innerHTML = '';
             submitButton.disabled = true;
         });
+
+        // Mejorar la experiencia de copiado en dispositivos táctiles
+        document.querySelectorAll('.copy-btn').forEach(button => {
+            button.addEventListener('touchstart', function(e) {
+                e.preventDefault();
+                const url = this.getAttribute('onclick').match(/'([^']+)'/)[1];
+                copyToClipboard(url, this);
+            });
+        });
     </script>
 </body>
 </html>
-
-<?php
-// Eliminar enlace via POST
-if ($_POST['delete'] ?? false) {
-    $data = loadData();
-    $slug = $_POST['delete'];
-    if (isset($data['redirects'][$slug])) {
-        unset($data['redirects'][$slug]);
-        $data['stats']['total_redirects'] = count($data['redirects']);
-        if (saveData($data)) {
-            echo json_encode(['success' => true]);
-        } else {
-            echo json_encode(['error' => 'Error guardando']);
-        }
-    } else {
-        echo json_encode(['error' => 'Enlace no encontrado']);
-    }
-    exit;
-}
-?>
