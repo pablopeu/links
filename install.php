@@ -535,14 +535,14 @@ function generateHtaccess($force_https, $script_path) {
                 <div class="mb-4">
                     <div class="card">
                         <div class="card-header bg-primary text-white">
-                            <h5 class="mb-0">📱 Sistema de Preview para Redes Sociales</h5>
+                            <h5 class="mb-0">📱 Preview para Redes Sociales</h5>
                         </div>
                         <div class="card-body">
                             <div class="form-check mb-3">
                                 <input type="checkbox" class="form-check-input" id="enable_preview" name="enable_preview" <?= (isset($_POST['enable_preview']) || !isset($_POST)) ? 'checked' : '' ?>>
-                                <label class="form-check-label fw-bold" for="enable_preview">Habilitar sistema de preview profesional</label>
+                                <label class="form-check-label fw-bold" for="enable_preview">Habilitar sistema de preview de links</label>
                                 <small class="form-text text-muted d-block">
-                                    Los enlaces acortados mostrarán un preview (como Rebrandly) cuando se compartan en Facebook, Twitter, WhatsApp, etc.
+                                    Los enlaces acortados mostrarán un preview cuando se compartan en Facebook, Twitter, WhatsApp, etc.
                                 </small>
                             </div>
                             
@@ -563,7 +563,6 @@ function generateHtaccess($force_https, $script_path) {
                                     <li>✅ Muestra un título personalizado</li>
                                     <li>✅ Muestra una descripción atractiva</li>
                                     <li>✅ Muestra una imagen de preview</li>
-                                    <li>✅ Experiencia similar a Rebrandly/Bitly</li>
                                 </ul>
                             </div>
                         </div>
@@ -594,7 +593,7 @@ function generateHtaccess($force_https, $script_path) {
                         <li><strong>Preservación de datos:</strong> Si existe data.json previo, se preserva y valida</li>
                         <li><strong>Interfaz moderna:</strong> Panel de control responsive y fácil de usar</li>
                         <li><strong>Redirección 404 personalizable:</strong> Define a dónde ir cuando un enlace no existe</li>
-                        <li><strong>Preview profesional:</strong> Sistema de preview para redes sociales (opcional)</li>
+                        <li><strong>Preview de links:</strong> Sistema de preview para redes sociales (opcional)</li>
                     </ul>
                 </div>
 
