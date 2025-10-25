@@ -57,6 +57,8 @@ if ($_POST) {
     $admin_pass = trim($_POST['admin_pass'] ?? '');
     $force_https = isset($_POST['force_https']);
     $redirect_404 = trim($_POST['redirect_404'] ?? $default_404_domain);
+    $enable_preview = isset($_POST['enable_preview']);
+    $update_existing = isset($_POST['update_existing']);
     
     // Limpiar y normalizar URLs
     $domain = rtrim($domain, '/');
@@ -113,6 +115,7 @@ if ($_POST) {
                 'admin_user' => $admin_user,
                 'base_url' => $base_url,
                 'redirect_404' => $redirect_404,
+                'enable_preview' => $enable_preview,
                 'force_https' => $force_https
             ];
             
@@ -123,7 +126,7 @@ if ($_POST) {
                 chmod($secure_config_file, 0600);
                 
                 // Crear config.php principal
-                $config_content = generateConfigContent($base_url, $base_path, $secure_config_file, $admin_user, $redirect_404);
+                $config_content = generateConfigContent($base_url, $base_path, $secure_config_file, $admin_user, $redirect_404, $enable_preview);
                 
                 if (file_put_contents('config.php', $config_content)) {
                     // Manejar data.json - preservar si existe
@@ -179,6 +182,26 @@ if ($_POST) {
                         } else {
                             // Data.json es válido, preservarlo
                             chmod($data_file, 0644);
+                            
+                            // Actualizar enlaces existentes con preview si se solicitó
+                            if ($update_existing && $enable_preview && isset($data['redirects'])) {
+                                error_log('Actualizando enlaces existentes con sistema de preview');
+                                foreach ($data['redirects'] as $slug => &$redirect) {
+                                    if (!isset($redirect['metatags'])) {
+                                        $redirect['metatags'] = [
+                                            'title' => $redirect['description'] ?? 'Enlace acortado - ' . parse_url($base_url, PHP_URL_HOST),
+                                            'description' => isset($redirect['description']) ? $redirect['description'] . ' - Enlace acortado' : 'Enlace acortado por ' . parse_url($base_url, PHP_URL_HOST),
+                                            'image' => $base_url . '/preview-default.jpg'
+                                        ];
+                                        error_log('Agregados metatags para slug: ' . $slug);
+                                    }
+                                }
+                                if (file_put_contents($data_file, json_encode($data, JSON_PRETTY_PRINT))) {
+                                    error_log('Enlaces existentes actualizados correctamente con sistema de preview');
+                                } else {
+                                    $errors[] = "No se pudieron actualizar los enlaces existentes";
+                                }
+                            }
                         }
                     }
                     
@@ -209,7 +232,7 @@ if ($_POST) {
 }
 
 // Función para generar contenido de config.php
-function generateConfigContent($base_url, $base_path, $secure_config_file, $admin_user, $redirect_404) {
+function generateConfigContent($base_url, $base_path, $secure_config_file, $admin_user, $redirect_404, $enable_preview) {
     return "<?php
 // Configuración automática - Instalador
 \$secure_config_path = '$secure_config_file';
@@ -223,6 +246,7 @@ if (!file_exists(\$secure_config_path)) {
 define('APP_URL', '$base_url');
 define('PANEL_URL', APP_URL . '/panel');
 define('REDIRECT_404_URL', '$redirect_404');
+define('ENABLE_PREVIEW', " . ($enable_preview ? 'true' : 'false') . ");
 define('DATA_PATH', \$secure_config['data_path']);
 define('ERROR_PATH', \$secure_config['error_path']);
 define('SESSION_NAME', \$secure_config['session_name']);
@@ -233,6 +257,7 @@ define('ADMIN_USER', \$secure_config['admin_user']);
 // Log para depuración
 error_log('APP_URL: ' . APP_URL);
 error_log('REDIRECT_404_URL: ' . REDIRECT_404_URL);
+error_log('ENABLE_PREVIEW: ' . (ENABLE_PREVIEW ? 'true' : 'false'));
 error_log('DATA_PATH: ' . DATA_PATH);
 error_log('SECURE_CONFIG_PATH: ' . SECURE_CONFIG_PATH);
 
@@ -305,6 +330,28 @@ function validateUrl(?string \$url): ?string {
     if (empty(\$url)) return null;
     \$url = filter_var(\$url, FILTER_VALIDATE_URL);
     return \$url && strpos(\$url, 'javascript:') === false ? \$url : null;
+}
+
+// Función para detectar bots de redes sociales
+function isSocialBot() {
+    \$user_agent = \$_SERVER['HTTP_USER_AGENT'] ?? '';
+    \$social_bots = [
+        'facebookexternalhit',
+        'Twitterbot', 
+        'LinkedInBot',
+        'WhatsApp',
+        'TelegramBot',
+        'Slackbot',
+        'Discordbot',
+        'SkypeUriPreview'
+    ];
+    
+    foreach (\$social_bots as \$bot) {
+        if (stripos(\$user_agent, \$bot) !== false) {
+            return true;
+        }
+    }
+    return false;
 }
 ?>";
 }
@@ -383,6 +430,7 @@ function generateHtaccess($force_https, $script_path) {
         .install-container { max-width: 800px; margin: 50px auto; padding: 30px; background: white; border-radius: 10px; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
         .requirements { background: #e9ecef; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
         .url-preview { background: #d1ecf1; padding: 10px; border-radius: 5px; margin: 10px 0; }
+        .feature-card { border-left: 4px solid #007bff; padding-left: 15px; margin-bottom: 15px; }
     </style>
 </head>
 <body>
@@ -395,7 +443,18 @@ function generateHtaccess($force_https, $script_path) {
                 <p><strong>Usuario:</strong> <?= htmlspecialchars($_POST['admin_user']) ?></p>
                 <p><strong>URL Base:</strong> <?= htmlspecialchars($base_url) ?></p>
                 <p><strong>Redirección 404:</strong> <?= htmlspecialchars($redirect_404) ?></p>
+                <p><strong>Sistema de Preview:</strong> <?= $enable_preview ? '✅ Habilitado' : '❌ Deshabilitado' ?></p>
                 <p><strong>Panel de control:</strong> <a href="<?= htmlspecialchars($base_url) ?>/panel" target="_blank"><?= htmlspecialchars($base_url) ?>/panel</a></p>
+                
+                <?php if ($enable_preview): ?>
+                <div class="alert alert-info mt-3">
+                    <h5>📱 Sistema de Preview Activado</h5>
+                    <p>Cuando compartas enlaces en redes sociales, se mostrará un preview profesional con título, descripción e imagen.</p>
+                    <?php if ($update_existing): ?>
+                        <p><strong>✅ Enlaces existentes actualizados</strong> con metatags básicos.</p>
+                    <?php endif; ?>
+                </div>
+                <?php endif; ?>
                 
                 <div class="alert alert-warning mt-3">
                     <h5>⚠️ IMPORTANTE</h5>
@@ -472,6 +531,45 @@ function generateHtaccess($force_https, $script_path) {
                     </small>
                 </div>
 
+                <!-- Sistema de Preview -->
+                <div class="mb-4">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">📱 Sistema de Preview para Redes Sociales</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-check mb-3">
+                                <input type="checkbox" class="form-check-input" id="enable_preview" name="enable_preview" <?= (isset($_POST['enable_preview']) || !isset($_POST)) ? 'checked' : '' ?>>
+                                <label class="form-check-label fw-bold" for="enable_preview">Habilitar sistema de preview profesional</label>
+                                <small class="form-text text-muted d-block">
+                                    Los enlaces acortados mostrarán un preview (como Rebrandly) cuando se compartan en Facebook, Twitter, WhatsApp, etc.
+                                </small>
+                            </div>
+                            
+                            <div class="mb-3" id="update_existing_container" style="display: <?= (isset($_POST['enable_preview']) || !isset($_POST)) ? 'block' : 'none' ?>;">
+                                <div class="form-check">
+                                    <input type="checkbox" class="form-check-input" id="update_existing" name="update_existing" <?= (isset($_POST['update_existing']) || !isset($_POST)) ? 'checked' : '' ?>>
+                                    <label class="form-check-label" for="update_existing">Actualizar enlaces existentes con sistema de preview</label>
+                                    <small class="form-text text-muted d-block">
+                                        Si ya tienes enlaces creados, se agregarán automáticamente meta tags básicos para el preview.
+                                    </small>
+                                </div>
+                            </div>
+
+                            <div class="feature-card">
+                                <h6>🎯 ¿Qué hace el sistema de preview?</h6>
+                                <p class="mb-1">Cuando compartas <code>tu-dominio.com/abc123</code> en redes sociales:</p>
+                                <ul class="small">
+                                    <li>✅ Muestra un título personalizado</li>
+                                    <li>✅ Muestra una descripción atractiva</li>
+                                    <li>✅ Muestra una imagen de preview</li>
+                                    <li>✅ Experiencia similar a Rebrandly/Bitly</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Opción forzar HTTPS -->
                 <div class="mb-3 form-check">
                     <input type="checkbox" class="form-check-input" id="force_https" name="force_https" <?= (isset($_POST['force_https']) || !isset($_POST)) ? 'checked' : '' ?>>
@@ -496,6 +594,7 @@ function generateHtaccess($force_https, $script_path) {
                         <li><strong>Preservación de datos:</strong> Si existe data.json previo, se preserva y valida</li>
                         <li><strong>Interfaz moderna:</strong> Panel de control responsive y fácil de usar</li>
                         <li><strong>Redirección 404 personalizable:</strong> Define a dónde ir cuando un enlace no existe</li>
+                        <li><strong>Preview profesional:</strong> Sistema de preview para redes sociales (opcional)</li>
                     </ul>
                 </div>
 
@@ -535,6 +634,11 @@ function generateHtaccess($force_https, $script_path) {
                     // Si no es una URL válida, no hacer nada
                 }
             }
+        });
+
+        // Mostrar/ocultar opción de actualizar enlaces existentes
+        document.getElementById('enable_preview').addEventListener('change', function() {
+            document.getElementById('update_existing_container').style.display = this.checked ? 'block' : 'none';
         });
     </script>
 </body>
