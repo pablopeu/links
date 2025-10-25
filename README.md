@@ -113,4 +113,4 @@ Si encuentras problemas durante la instalación:
 - **Error 404**: Verifica que el subdominio apunte a la carpeta correcta
 - **SSL no funciona**: Asegúrate de tener certificado SSL para el subdominio
 
-¡Tu URL shortener estará listo en minutos! 🎉
+
