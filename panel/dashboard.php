@@ -98,9 +98,13 @@ $redirects = $data['redirects'];
         }
         .table-footer { 
             background-color: #343a40; 
-            height: 15px; 
+            height: 12px; 
             border-bottom-left-radius: 0.375rem;
             border-bottom-right-radius: 0.375rem;
+            position: sticky;
+            bottom: 0;
+            left: 0;
+            right: 0;
         }
         .link-container {
             display: flex;
@@ -109,6 +113,104 @@ $redirects = $data['redirects'];
         }
         .short-url {
             flex-grow: 1;
+        }
+        body, html {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        .navbar {
+            min-height: 50px;
+            padding-top: 0.25rem;
+            padding-bottom: 0.25rem;
+        }
+        .container-main {
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 50px);
+            padding-top: 0.5rem;
+        }
+        .links-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+        .table-container {
+            flex: 1;
+            overflow-y: auto;
+        }
+        .card-table-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        .stats-card {
+            height: 70px;
+            padding: 0.5rem;
+            transition: all 0.2s ease;
+        }
+        .stats-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .alert {
+            padding: 0.5rem 1rem;
+            margin-bottom: 0.75rem;
+        }
+        /* Mantener alturas compactas pero con tipografías normales */
+        .table-compact td, .table-compact th {
+            padding: 0.5rem 0.75rem;
+        }
+        /* Cards clickeables */
+        .clickable-card {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .clickable-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        .stats-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 100%;
+        }
+        .stats-text {
+            display: flex;
+            flex-direction: column;
+        }
+        .stats-number {
+            font-size: 1.5rem;
+            font-weight: bold;
+            line-height: 1;
+        }
+        .stats-title {
+            font-size: 0.85rem;
+            margin-bottom: 0;
+        }
+        /* Estilos para las tarjetas de acción */
+        .action-card-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 100%;
+        }
+        .action-card-text {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .action-card-line {
+            font-size: 1rem;
+            font-weight: 500;
+            line-height: 1.2;
+            margin-bottom: 0;
+        }
+        .action-card-icon {
+            font-size: 1.8rem;
+            opacity: 0.7;
         }
     </style>
 </head>
@@ -125,208 +227,216 @@ $redirects = $data['redirects'];
         </div>
     </nav>
 
-    <div class="container mt-4">
-        <div class="row">
-            <div class="col-md-12">
-                <h2><i class="fas fa-tachometer-alt"></i> Panel de Control</h2>
-
-                <?php if (isset($_GET['deleted']) && $_GET['deleted'] == '1'): ?>
-                    <div class="alert alert-success alert-dismissible fade show" role="alert">
-                        <i class="fas fa-check-circle"></i> Enlace eliminado correctamente.
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                <?php endif; ?>
-
-                <?php if (isset($_GET['updated']) && $_GET['updated'] == '1'): ?>
-                    <div class="alert alert-success alert-dismissible fade show" role="alert">
-                        <i class="fas fa-check-circle"></i> Enlace actualizado correctamente.
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                <?php endif; ?>
-
-                <?php if (isset($_GET['success']) && $_GET['success'] == '1'): ?>
-                    <div class="alert alert-success alert-dismissible fade show" role="alert">
-                        <i class="fas fa-check-circle"></i> Enlace creado correctamente.
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                <?php endif; ?>
-
-                <!-- Modal para cambiar contraseña -->
-                <div class="modal fade" id="changePasswordModal" tabindex="-1" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
-                    <div class="modal-dialog">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="changePasswordModalLabel"><i class="fas fa-key"></i> Cambiar Contraseña</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body">
-                                <?php if (isset($success)): ?>
-                                    <div class="alert alert-success"><?= htmlspecialchars($success) ?></div>
-                                <?php endif; ?>
-                                <?php if (isset($error)): ?>
-                                    <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div>
-                                <?php endif; ?>
-                                <form method="POST" action="" id="password-form">
-                                    <input type="hidden" name="change_password" value="1">
-                                    <div class="mb-3">
-                                        <label for="current_password" class="form-label">Contraseña Actual</label>
-                                        <input type="password" class="form-control" id="current_password" name="current_password" required>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="new_password" class="form-label">Nueva Contraseña</label>
-                                        <input type="password" class="form-control" id="new_password" name="new_password" required>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="confirm_new_password" class="form-label">Confirmar Nueva Contraseña</label>
-                                        <div class="input-group">
-                                            <input type="password" class="form-control" id="confirm_new_password" name="confirm_new_password" required>
-                                            <span class="input-group-text" id="password-match-icon"></span>
-                                        </div>
-                                    </div>
-                                    <button type="submit" class="btn btn-primary" id="submit-password" disabled>Cambiar Contraseña</button>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Estadísticas -->
-                <div class="row mb-4">
-                    <div class="col-md-3">
-                        <div class="card text-white bg-primary">
-                            <div class="card-body">
-                                <h5><i class="fas fa-link"></i> Enlaces</h5>
-                                <h3><?= count($redirects) ?></h3>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card text-white bg-success">
-                            <div class="card-body">
-                                <h5><i class="fas fa-mouse-pointer"></i> Clicks</h5>
-                                <h3><?= $data['stats']['total_clicks'] ?? 0 ?></h3>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card text-white bg-info">
-                            <div class="card-body">
-                                <h5><i class="fas fa-key"></i> Cambiar Contraseña</h5>
-                                <button class="btn btn-light" data-bs-toggle="modal" data-bs-target="#changePasswordModal">
-                                    <i class="fas fa-key"></i> Cambiar ahora
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card text-white bg-warning">
-                            <div class="card-body">
-                                <h5><i class="fas fa-share-alt"></i> Preview</h5>
-                                <h3><?= ENABLE_PREVIEW ? '✅ Activado' : '❌ Desactivado' ?></h3>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Botón nuevo enlace -->
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h4><i class="fas fa-list"></i> Mis Enlaces</h4>
-                    <a href="add.php" class="btn btn-success">
-                        <i class="fas fa-plus"></i> Nuevo Enlace
-                    </a>
-                </div>
-
-                <!-- Tabla de enlaces -->
-                <?php if (empty($redirects)): ?>
-                    <div class="alert alert-info text-center">
-                        <i class="fas fa-info-circle"></i> No tienes enlaces aún. 
-                        <a href="add.php">¡Crea el primero!</a>
-                    </div>
-                <?php else: ?>
-                    <div class="card">
-                        <div class="card-body p-0">
-                            <div class="table-responsive">
-                                <table class="table table-hover mb-0">
-                                    <thead class="table-dark">
-                                        <tr>
-                                            <th>Enlace Corto</th>
-                                            <th>Destino</th>
-                                            <th>Descripción</th>
-                                            <?php if (ENABLE_PREVIEW): ?>
-                                            <th>Preview</th>
-                                            <?php endif; ?>
-                                            <th>Clicks</th>
-                                            <th>Fecha</th>
-                                            <th>Acciones</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <?php foreach ($redirects as $slug => $redirect): ?>
-                                            <tr>
-                                                <td>
-                                                    <div class="link-container">
-                                                        <div class="short-url">
-                                                            <a href="<?= APP_URL ?>/<?= $slug ?>" target="_blank" class="text-decoration-none">
-                                                                <i class="fas fa-external-link-alt text-primary"></i>
-                                                                <?= htmlspecialchars(APP_URL) ?>/<?= $slug ?>
-                                                            </a>
-                                                        </div>
-                                                        <button class="btn btn-sm btn-outline-secondary copy-btn" 
-                                                                onclick="copyToClipboard('<?= APP_URL ?>/<?= $slug ?>', this)" 
-                                                                title="Copiar enlace al portapapeles">
-                                                            <i class="fas fa-copy"></i>
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <small class="text-muted">
-                                                        <?= htmlspecialchars(substr($redirect['url'], 0, 40)) ?>...
-                                                    </small>
-                                                </td>
-                                                <td><?= htmlspecialchars($redirect['description'] ?? '-') ?></td>
-                                                <?php if (ENABLE_PREVIEW): ?>
-                                                <td>
-                                                    <?php if (isset($redirect['metatags'])): ?>
-                                                        <span class="badge bg-success preview-badge" title="Preview configurado">
-                                                            <i class="fas fa-check"></i> Sí
-                                                        </span>
-                                                    <?php else: ?>
-                                                        <span class="badge bg-secondary preview-badge" title="Sin preview configurado">
-                                                            <i class="fas fa-times"></i> No
-                                                        </span>
-                                                    <?php endif; ?>
-                                                </td>
-                                                <?php endif; ?>
-                                                <td>
-                                                    <span class="badge bg-primary"><?= $redirect['clicks'] ?? 0 ?></span>
-                                                </td>
-                                                <td>
-                                                    <small class="text-muted">
-                                                        <?= date('d/m/Y', strtotime($redirect['created'])) ?>
-                                                    </small>
-                                                </td>
-                                                <td>
-                                                    <a href="edit.php?slug=<?= urlencode($slug) ?>" class="btn btn-sm btn-outline-primary">
-                                                        <i class="fas fa-edit"></i>
-                                                    </a>
-                                                    <form method="POST" action="" class="d-inline" onsubmit="return confirm('¿Eliminar este enlace? Esta acción no se puede deshacer.')">
-                                                        <input type="hidden" name="delete" value="<?= $slug ?>">
-                                                        <button type="submit" class="btn btn-sm btn-outline-danger">
-                                                            <i class="fas fa-trash"></i>
-                                                        </button>
-                                                    </form>
-                                                </td>
-                                            </tr>
-                                        <?php endforeach; ?>
-                                    </tbody>
-                                </table>
-                            </div>
-                            <!-- Barra negra decorativa -->
-                            <div class="table-footer"></div>
-                        </div>
-                    </div>
-                <?php endif; ?>
+    <div class="container container-main">
+        <?php if (isset($_GET['deleted']) && $_GET['deleted'] == '1'): ?>
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="fas fa-check-circle"></i> Enlace eliminado correctamente.
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
+        <?php endif; ?>
+
+        <?php if (isset($_GET['updated']) && $_GET['updated'] == '1'): ?>
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="fas fa-check-circle"></i> Enlace actualizado correctamente.
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        <?php endif; ?>
+
+        <?php if (isset($_GET['success']) && $_GET['success'] == '1'): ?>
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="fas fa-check-circle"></i> Enlace creado correctamente.
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        <?php endif; ?>
+
+        <!-- Modal para cambiar contraseña -->
+        <div class="modal fade" id="changePasswordModal" tabindex="-1" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="changePasswordModalLabel"><i class="fas fa-key"></i> Cambiar Contraseña</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <?php if (isset($success)): ?>
+                            <div class="alert alert-success"><?= htmlspecialchars($success) ?></div>
+                        <?php endif; ?>
+                        <?php if (isset($error)): ?>
+                            <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div>
+                        <?php endif; ?>
+                        <form method="POST" action="" id="password-form">
+                            <input type="hidden" name="change_password" value="1">
+                            <div class="mb-3">
+                                <label for="current_password" class="form-label">Contraseña Actual</label>
+                                <input type="password" class="form-control" id="current_password" name="current_password" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="new_password" class="form-label">Nueva Contraseña</label>
+                                <input type="password" class="form-control" id="new_password" name="new_password" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="confirm_new_password" class="form-label">Confirmar Nueva Contraseña</label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="confirm_new_password" name="confirm_new_password" required>
+                                    <span class="input-group-text" id="password-match-icon"></span>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary" id="submit-password" disabled>Cambiar Contraseña</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Estadísticas -->
+        <div class="row mb-3">
+            <div class="col-md-3">
+                <div class="card text-white bg-primary stats-card">
+                    <div class="card-body p-2">
+                        <div class="stats-content">
+                            <div class="stats-text">
+                                <h6 class="stats-title"><i class="fas fa-link"></i> Enlaces</h6>
+                                <div class="stats-number"><?= count($redirects) ?></div>
+                            </div>
+                            <i class="fas fa-link fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white bg-success stats-card">
+                    <div class="card-body p-2">
+                        <div class="stats-content">
+                            <div class="stats-text">
+                                <h6 class="stats-title"><i class="fas fa-mouse-pointer"></i> Clicks</h6>
+                                <div class="stats-number"><?= $data['stats']['total_clicks'] ?? 0 ?></div>
+                            </div>
+                            <i class="fas fa-mouse-pointer fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white bg-info stats-card clickable-card" data-bs-toggle="modal" data-bs-target="#changePasswordModal">
+                    <div class="card-body p-2 h-100">
+                        <div class="action-card-content">
+                            <div class="action-card-text">
+                                <p class="action-card-line">Cambiar</p>
+                                <p class="action-card-line">Contraseña</p>
+                            </div>
+                            <i class="fas fa-key action-card-icon"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <a href="add.php" class="text-decoration-none">
+                    <div class="card text-white bg-warning stats-card clickable-card">
+                        <div class="card-body p-2 h-100">
+                            <div class="action-card-content">
+                                <div class="action-card-text">
+                                    <p class="action-card-line">Nuevo</p>
+                                    <p class="action-card-line">Enlace</p>
+                                </div>
+                                <i class="fas fa-plus action-card-icon"></i>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+        <!-- Tabla de enlaces -->
+        <div class="links-container">
+            <?php if (empty($redirects)): ?>
+                <div class="alert alert-info text-center py-2">
+                    <i class="fas fa-info-circle"></i> No tienes enlaces aún. 
+                    <a href="add.php">¡Crea el primero!</a>
+                </div>
+            <?php else: ?>
+                <div class="card h-100">
+                    <div class="card-table-container">
+                        <div class="table-container">
+                            <table class="table table-hover table-compact mb-0">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Enlace Corto</th>
+                                        <th>Destino</th>
+                                        <th>Descripción</th>
+                                        <?php if (ENABLE_PREVIEW): ?>
+                                        <th>Preview</th>
+                                        <?php endif; ?>
+                                        <th>Clicks</th>
+                                        <th>Fecha</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($redirects as $slug => $redirect): ?>
+                                        <tr>
+                                            <td>
+                                                <div class="link-container">
+                                                    <div class="short-url">
+                                                        <a href="<?= APP_URL ?>/<?= $slug ?>" target="_blank" class="text-decoration-none">
+                                                            <i class="fas fa-external-link-alt text-primary"></i>
+                                                            <?= htmlspecialchars(APP_URL) ?>/<?= $slug ?>
+                                                        </a>
+                                                    </div>
+                                                    <button class="btn btn-sm btn-outline-secondary copy-btn" 
+                                                            onclick="copyToClipboard('<?= APP_URL ?>/<?= $slug ?>', this)" 
+                                                            title="Copiar enlace al portapapeles">
+                                                        <i class="fas fa-copy"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <small class="text-muted">
+                                                    <?= htmlspecialchars(substr($redirect['url'], 0, 40)) ?>...
+                                                </small>
+                                            </td>
+                                            <td><?= htmlspecialchars($redirect['description'] ?? '-') ?></td>
+                                            <?php if (ENABLE_PREVIEW): ?>
+                                            <td>
+                                                <?php if (isset($redirect['metatags'])): ?>
+                                                    <span class="badge bg-success preview-badge" title="Preview configurado">
+                                                        <i class="fas fa-check"></i> Sí
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="badge bg-secondary preview-badge" title="Sin preview configurado">
+                                                        <i class="fas fa-times"></i> No
+                                                    </span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <?php endif; ?>
+                                            <td>
+                                                <span class="badge bg-primary"><?= $redirect['clicks'] ?? 0 ?></span>
+                                            </td>
+                                            <td>
+                                                <small class="text-muted">
+                                                    <?= date('d/m/Y', strtotime($redirect['created'])) ?>
+                                                </small>
+                                            </td>
+                                            <td>
+                                                <a href="edit.php?slug=<?= urlencode($slug) ?>" class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                <form method="POST" action="" class="d-inline" onsubmit="return confirm('¿Eliminar este enlace? Esta acción no se puede deshacer.')">
+                                                    <input type="hidden" name="delete" value="<?= $slug ?>">
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                        <!-- Barra negra decorativa - SIEMPRE VISIBLE -->
+                        <div class="table-footer"></div>
+                    </div>
+                </div>
+            <?php endif; ?>
         </div>
     </div>
 
