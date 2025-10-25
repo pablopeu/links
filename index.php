@@ -4,6 +4,7 @@ error_log('Iniciando index.php');
 require_once 'config.php';
 
 error_log('REQUEST_URI: ' . $_SERVER['REQUEST_URI']);
+
 // Obtener el slug correctamente considerando subcarpetas
 $request_uri = $_SERVER['REQUEST_URI'];
 $script_path = dirname($_SERVER['SCRIPT_NAME']);
@@ -18,6 +19,31 @@ error_log('Slug solicitado: ' . $slug);
 
 error_log('Redirección 404 configurada: ' . REDIRECT_404_URL);
 
+// Detectar si es un bot de redes sociales (para mostrar preview)
+$user_agent = $_SERVER['HTTP_USER_AGENT'] ?? '';
+$is_social_bot = false;
+$social_bots = [
+    'facebookexternalhit',
+    'Twitterbot',
+    'LinkedInBot',
+    'WhatsApp',
+    'TelegramBot',
+    'Slackbot',
+    'Discordbot',
+    'SkypeUriPreview'
+];
+
+foreach ($social_bots as $bot) {
+    if (stripos($user_agent, $bot) !== false) {
+        $is_social_bot = true;
+        error_log('Bot detectado: ' . $bot);
+        break;
+    }
+}
+
+// También permitir preview manual
+$is_preview = isset($_GET['preview']);
+
 if (empty($slug) || $slug === 'panel') {
     error_log('Redirigiendo a PANEL_URL: ' . PANEL_URL);
     header('Location: ' . PANEL_URL);
@@ -31,15 +57,22 @@ if (strpos($slug, '?') !== false) {
 
 error_log('Cargando datos...');
 $data = loadData();
-error_log('Datos cargados: ' . print_r($data, true));
 $redirect = $data['redirects'][$slug] ?? null;
 
 if ($redirect) {
-    // Incrementar contador
+    // Si es un bot de redes sociales y el preview está habilitado, mostrar meta tags
+    if (ENABLE_PREVIEW && ($is_social_bot || $is_preview)) {
+        error_log('Mostrando preview para slug: ' . $slug);
+        showSocialPreview($redirect, $slug);
+        exit;
+    }
+    
+    // Incrementar contador y redirigir normalmente
     $redirect['clicks'] = ($redirect['clicks'] ?? 0) + 1;
     $data['redirects'][$slug] = $redirect;
     $data['stats']['total_clicks']++;
     error_log('Guardando datos para slug: ' . $slug);
+    
     if (saveData($data)) {
         error_log('Redirigiendo a: ' . $redirect['url']);
         header('Location: ' . $redirect['url'], true, 301);
@@ -51,7 +84,7 @@ if ($redirect) {
     }
 }
 
-// 404 - Mostrar página de error con cuenta regresiva A LA URL CONFIGURADA
+// 404 - Mostrar página de error
 error_log('404 - Slug no encontrado: ' . $slug);
 http_response_code(404);
 ?>
@@ -92,4 +125,60 @@ http_response_code(404);
 </html>
 <?php
 exit;
+
+// Función para mostrar preview en redes sociales
+function showSocialPreview($redirect, $slug) {
+    $metatags = $redirect['metatags'] ?? [];
+    $url_destino = $redirect['url'];
+    $titulo = $metatags['title'] ?? ($redirect['description'] ?? 'Enlace acortado');
+    $descripcion = $metatags['description'] ?? ($redirect['description'] ?? 'Enlace acortado por ' . parse_url(APP_URL, PHP_URL_HOST));
+    $imagen = $metatags['image'] ?? (APP_URL . '/preview-default.jpg');
+    $url_corto = APP_URL . '/' . $slug;
+    
+    // Meta tags Open Graph
+    header('Content-Type: text/html; charset=utf-8');
+    ?>
+<!DOCTYPE html>
+<html prefix="og: https://ogp.me/ns#">
+<head>
+    <title><?= htmlspecialchars($titulo) ?></title>
+    <meta name="description" content="<?= htmlspecialchars($descripcion) ?>">
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="<?= htmlspecialchars($titulo) ?>">
+    <meta property="og:description" content="<?= htmlspecialchars($descripcion) ?>">
+    <meta property="og:image" content="<?= htmlspecialchars($imagen) ?>">
+    <meta property="og:url" content="<?= htmlspecialchars($url_corto) ?>">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="<?= htmlspecialchars(parse_url(APP_URL, PHP_URL_HOST)) ?>">
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="<?= htmlspecialchars($titulo) ?>">
+    <meta name="twitter:description" content="<?= htmlspecialchars($descripcion) ?>">
+    <meta name="twitter:image" content="<?= htmlspecialchars($imagen) ?>">
+    
+    <!-- Redirección para usuarios normales -->
+    <meta http-equiv="refresh" content="0;url=<?= htmlspecialchars($url_destino) ?>">
+</head>
+<body>
+    <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
+        <h1><?= htmlspecialchars($titulo) ?></h1>
+        <p><?= htmlspecialchars($descripcion) ?></p>
+        <?php if ($imagen): ?>
+            <img src="<?= htmlspecialchars($imagen) ?>" alt="Preview" style="max-width: 100%; height: auto; border-radius: 10px;">
+        <?php endif; ?>
+        <p style="margin-top: 20px;">
+            <a href="<?= htmlspecialchars($url_destino) ?>" style="padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 5px;">
+                Continuar al enlace
+            </a>
+        </p>
+        <p style="color: #666; font-size: 0.9em;">
+            Enlace acortado por <?= htmlspecialchars(parse_url(APP_URL, PHP_URL_HOST)) ?>
+        </p>
+    </div>
+</body>
+</html>
+    <?php
+}
 ?>
