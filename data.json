@@ -1,0 +1,180 @@
+{
+    "redirects": {
+        "cpanel": {
+            "url": "http:\/\/200.68.105.36:2082\/",
+            "description": "Allytech",
+            "created": "2025-10-22 19:46:00",
+            "clicks": 0
+        },
+        "tn": {
+            "url": "https:\/\/www.youtube.com\/watch?v=TIl4EftmC1E",
+            "description": "",
+            "created": "2025-10-24 23:58:16",
+            "clicks": 20,
+            "metatags": {
+                "title": "Enlace acortado - mi.peu.net",
+                "description": "Enlace acortado por mi.peu.net",
+                "image": "https:\/\/mi.peu.net\/preview-default.jpg"
+            }
+        },
+        "chefas": {
+            "url": "https:\/\/radiocut.fm\/audiocut\/chefas-10-5-2018-cuchillos-peu-y-kamado-arg\/",
+            "description": "",
+            "created": "2025-10-25 00:23:21",
+            "clicks": 0,
+            "metatags": {
+                "title": "Enlace acortado - mi.peu.net",
+                "description": "Enlace acortado por mi.peu.net",
+                "image": "https:\/\/mi.peu.net\/preview-default.jpg"
+            }
+        },
+        "afilado": {
+            "url": "https:\/\/www.youtube.com\/watch?v=ZZ-BeufWr0U",
+            "description": "test",
+            "created": "2025-10-21 01:18:45",
+            "clicks": 42,
+            "metatags": {
+                "title": "COMO AFILAR UN CUCHILLO | Potrocattaneo & PEU",
+                "description": "En este video les vamos a ense\u00f1ar como afilar un cuchillo a piedra! tambi\u00e9n las partes de un cuchillo, tipos de cuchillo, mitos, mantenimiento y mucho m\u00e1s. u...",
+                "image": "https:\/\/i.ytimg.com\/vi\/ZZ-BeufWr0U\/maxresdefault.jpg"
+            }
+        },
+        "infobae": {
+            "url": "https:\/\/www.infobae.com\/sociedad\/2019\/08\/04\/cuchilleros-y-afiladores-los-oficios-invisibles-y-artesanales-detras-de-la-gastronomia-nacional\/",
+            "description": "Nota Infobae",
+            "created": "2025-10-22 19:44:26",
+            "clicks": 0,
+            "metatags": {
+                "title": "Cuchilleros y afiladores: los oficios \"invisibles\" y artesanales detr\u00e1s de la gastronom\u00eda nacional",
+                "description": "Radiograf\u00eda de una actividad que pasa de generaci\u00f3n en generaci\u00f3n y se expande por la demanda de los chefs m\u00e1s reconocidos del pa\u00eds",
+                "image": "https:\/\/mi.peu.net\/preview-default.jpg"
+            }
+        },
+        "filtro": {
+            "url": "https:\/\/x.com\/PEU_AR\/status\/1742232308722061541",
+            "description": "Filtro Agua",
+            "created": "2025-10-22 19:42:24",
+            "clicks": 5,
+            "metatags": {
+                "title": "Filtro Agua",
+                "description": "Filtro Agua",
+                "image": "https:\/\/mi.peu.net\/preview-default.jpg"
+            }
+        },
+        "heladera": {
+            "url": "https:\/\/thingspeak.com\/channels\/843395",
+            "description": "Thingspeak",
+            "created": "2025-10-22 19:42:53",
+            "clicks": 4,
+            "metatags": {
+                "title": "Monitor T&H - ThingSpeak IoT",
+                "description": "Si desde la \u00faltima vez que miraste, notas un cambio en las curvas, la mayoria de las veces es porque toqu\u00e9 algun par\u00e1metro de los controles para ajustar a un promedio de 13C y 75%HR. O tambien algun experimento momentaneo :-) - Monitor T&H on ThingSpeak - ThingSpeak is the open IoT platform with MATLAB analytics.",
+                "image": "https:\/\/mi.peu.net\/preview-default.jpg"
+            }
+        },
+        "horno": {
+            "url": "https:\/\/www.dropbox.com\/s\/cjox5um5gnuvpji\/Horno%20Tratamiento%20Termico%20PEU%20actualizado%202019%20planos.pdf?dl=0",
+            "description": "Planos Horno",
+            "created": "2025-10-22 19:46:37",
+            "clicks": 0,
+            "metatags": {
+                "title": "Dropbox",
+                "description": "Planos Horno",
+                "image": "https:\/\/mi.peu.net\/preview-default.jpg"
+            }
+        },
+        "pan": {
+            "url": "https:\/\/www.youtube.com\/playlist?list=PLGHlyCrP246wgvVuxMmj5pbqiJc8ZiwVR",
+            "description": "Playlist PAN",
+            "created": "2025-10-22 19:47:01",
+            "clicks": 0,
+            "metatags": {
+                "title": "PAN",
+                "description": "Para hacer masa madre cualquier harina sirve, usen 000 y sigan el procedimiento del video de Ibanyarza. Un lugar c\u00e1lido en cualquier cocina es arriba y atr\u00e1s...",
+                "image": "https:\/\/i.ytimg.com\/vi\/BsSEh9KH-zs\/hqdefault.jpg?sqp=-oaymwEXCOADEI4CSFryq4qpAwkIARUAAIhCGAE=&amp;rs=AOn4CLBq1nfbriBhSQTGGYBTv7xlzVkfEQ&amp;days_since_epoch=20386"
+            }
+        },
+        "casa": {
+            "url": "https:\/\/peu.net\/cuchillos\/?xauth=GcjchobfBrqy",
+            "description": "Allende",
+            "created": "2025-10-23 23:08:06",
+            "clicks": 0,
+            "metatags": {
+                "title": "PEU Cuchillos a Pedido",
+                "description": "Pablo Untroib - cuchillos@peu.net",
+                "image": "https:\/\/www.peu.net\/caratula.jpg"
+            }
+        },
+        "lijadora": {
+            "url": "https:\/\/imgur.com\/a\/h7AHP",
+            "description": "Fotos Lijadora",
+            "created": "2025-10-22 19:45:33",
+            "clicks": 0,
+            "metatags": {
+                "title": "Lijadora Carrusel PEU - Album on Imgur",
+                "description": "Fotos Lijadora",
+                "image": "https:\/\/mi.peu.net\/preview-default.jpg"
+            }
+        },
+        "oficios": {
+            "url": "https:\/\/turismo.buenosaires.gob.ar\/es\/article\/el-oficinista-que-se-redescubri%C3%B3-creando-cuchillos-de-ensue%C3%B1o",
+            "description": "Oficios CABA",
+            "created": "2025-10-22 19:45:00",
+            "clicks": 3,
+            "metatags": {
+                "title": "Oficios CABA",
+                "description": "Oficios CABA",
+                "image": "https:\/\/mi.peu.net\/preview-default.jpg"
+            }
+        },
+        "qr": {
+            "url": "https:\/\/g.page\/r\/CUkJ9JM78CzUEAE\/review",
+            "description": "Google Review",
+            "created": "2025-10-22 19:41:13",
+            "clicks": 2,
+            "metatags": {
+                "title": "Google Maps",
+                "description": "Google Review",
+                "image": "https:\/\/mi.peu.net\/preview-default.jpg"
+            }
+        },
+        "caba": {
+            "url": "https:\/\/turismo.buenosaires.gob.ar\/es\/article\/el-oficinista-que-se-redescubri%C3%B3-creando-cuchillos-de-ensue%C3%B1o",
+            "description": "",
+            "created": "2025-10-31 15:39:25",
+            "clicks": 0,
+            "metatags": {
+                "title": "Enlace acortado - mi.peu.net",
+                "description": "Enlace acortado por mi.peu.net",
+                "image": "https:\/\/mi.peu.net\/preview-default.jpg"
+            }
+        },
+        "elpais": {
+            "url": "https:\/\/ignaciomedina.net\/el-cuchillero-de-buenos-aires\/",
+            "description": "El cuchillero de Buenos Aires",
+            "created": "2025-10-31 15:48:16",
+            "clicks": 0,
+            "metatags": {
+                "title": "El cuchillero de Buenos Aires",
+                "description": "Encuentro la tierra prometida de los cuchillos en el quinto piso de un viejo edificio del centro de Buenos Aires. Un apartamento tradicional con vecinos normales, una familia con hijos arriba y una profesora de canto abajo, por cuyas habitaciones se desparraman peque\u00f1as m\u00e1quinas, materiales apilados",
+                "image": "https:\/\/ignaciomedina.net\/wp-content\/uploads\/2015\/12\/IMG_43521.jpg"
+            }
+        },
+        "elpais-en": {
+            "url": "https:\/\/ignaciomedina-net.translate.goog\/el-cuchillero-de-buenos-aires\/?_x_tr_sl=es&_x_tr_tl=en&_x_tr_hl=en&_x_tr_pto=wapp",
+            "description": "El cuchillero de Buenos Aires",
+            "created": "2025-10-31 15:51:05",
+            "clicks": 1,
+            "metatags": {
+                "title": "El cuchillero de Buenos Aires",
+                "description": "Encuentro la tierra prometida de los cuchillos en el quinto piso de un viejo edificio del centro de Buenos Aires. Un apartamento tradicional con vecinos normales, una familia con hijos arriba y una profesora de canto abajo, por cuyas habitaciones se desparraman peque\u00f1as m\u00e1quinas, materiales apilados",
+                "image": "https:\/\/ignaciomedina.net\/wp-content\/uploads\/2015\/12\/IMG_43521.jpg"
+            }
+        }
+    },
+    "stats": {
+        "total_redirects": 16,
+        "total_clicks": 102,
+        "created": "2025-10-21 00:28:40"
+    }
+}
