@@ -1,0 +1,36 @@
+<?php
+// panel/index.php - patched to avoid session_name() warning and robust start
+// Put this at the top of your panel entry file (before output)
+
+// Load config if exists
+$config_path = __DIR__ . '/../config.php';
+if (file_exists($config_path)) {
+    require_once $config_path;
+}
+
+// Determine session name from config or env
+$sessionName = $config['session_name'] ?? getenv('SESSION_NAME') ?: 'links_session';
+
+// If PHP started session automatically (session.auto_start = 1), don't try to change name
+if (ini_get('session.auto_start')) {
+    // session already started by PHP; can't change session name
+} else {
+    if (session_status() === PHP_SESSION_NONE) {
+        // set session name before starting session, but only if headers not sent
+        if (!headers_sent()) {
+            session_name($sessionName);
+        }
+        session_start();
+    }
+}
+
+// Now your existing panel logic can continue safely.
+// Example: simple auth check (you probably have your own)
+if (empty($_SESSION['user']) && ($_SERVER['REQUEST_METHOD'] !== 'POST')) {
+    // Not necessarily redirect - adapt to your auth flow
+    // header('Location: /login.php'); exit;
+}
+
+// Rest of panel code below...
+echo "<!-- Panel loaded (patched) -->\n";
+// (Insert your panel UI/logic here or include your original panel files)

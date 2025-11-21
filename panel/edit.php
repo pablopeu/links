@@ -1,7 +1,7 @@
 <?php
-// Desactivar errores para producción
-error_reporting(0);
-ini_set('display_errors', 0);
+// TEMPORAL: Mostrar errores
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 
 require_once '../config.php';
 
@@ -19,7 +19,7 @@ function requireAuth() {
 
 requireAuth();
 
-// Función SEGURA para obtener metadatos
+// Función para obtener metadatos de una URL
 function getUrlMetadata($url) {
     $metadata = [
         'title' => '',
@@ -29,23 +29,16 @@ function getUrlMetadata($url) {
         'message' => 'No se pudo procesar la URL'
     ];
     
-    // Validación básica de URL
-    if (empty($url) || !filter_var($url, FILTER_VALIDATE_URL)) {
+    // Validar URL primero
+    if (!filter_var($url, FILTER_VALIDATE_URL)) {
         $metadata['message'] = 'URL inválida';
         return $metadata;
     }
     
-    // Verificar que allow_url_fopen esté habilitado
-    if (!ini_get('allow_url_fopen')) {
-        $metadata['message'] = 'El servidor no permite abrir URLs externas';
-        return $metadata;
-    }
-    
     try {
-        // Configuración simple y segura
         $context = stream_context_create([
             'http' => [
-                'timeout' => 8,
+                'timeout' => 10,
                 'header' => "User-Agent: Mozilla/5.0 (compatible; URLShortener/1.0)\r\n",
                 'ignore_errors' => true
             ],
@@ -55,43 +48,30 @@ function getUrlMetadata($url) {
             ]
         ]);
         
-        // Intentar obtener el contenido
         $html = @file_get_contents($url, false, $context);
-        
         if ($html === false) {
-            $metadata['message'] = 'No se pudo acceder a la URL. El sitio puede estar bloqueando el acceso.';
+            $metadata['message'] = 'No se pudo acceder a la URL';
             return $metadata;
         }
-        
-        // Verificar que tengamos contenido
-        if (empty($html)) {
-            $metadata['message'] = 'El sitio devolvió contenido vacío';
-            return $metadata;
-        }
-        
-        // Búsqueda segura de metadatos
-        $title = '';
-        $description = '';
-        $image = '';
         
         // Buscar título
         if (preg_match('/<title>(.*?)<\/title>/is', $html, $matches)) {
-            $title = trim(html_entity_decode($matches[1]));
+            $metadata['title'] = trim(html_entity_decode($matches[1]));
         }
         
         // Buscar meta description
         if (preg_match('/<meta\s+name="description"\s+content="(.*?)"/is', $html, $matches)) {
-            $description = trim(html_entity_decode($matches[1]));
+            $metadata['description'] = trim(html_entity_decode($matches[1]));
         }
         
         // Buscar og:description
         if (preg_match('/<meta\s+property="og:description"\s+content="(.*?)"/is', $html, $matches)) {
-            $description = trim(html_entity_decode($matches[1]));
+            $metadata['description'] = trim(html_entity_decode($matches[1]));
         }
         
         // Buscar og:title
         if (preg_match('/<meta\s+property="og:title"\s+content="(.*?)"/is', $html, $matches)) {
-            $title = trim(html_entity_decode($matches[1]));
+            $metadata['title'] = trim(html_entity_decode($matches[1]));
         }
         
         // Buscar og:image
@@ -103,40 +83,34 @@ function getUrlMetadata($url) {
                     $baseUrl = parse_url($url);
                     $scheme = $baseUrl['scheme'] ?? 'https';
                     $host = $baseUrl['host'] ?? '';
-                    $base = $scheme . '://' . $host;
-                    $image = $base . '/' . ltrim($imageUrl, '/');
+                    $port = isset($baseUrl['port']) ? ':' . $baseUrl['port'] : '';
+                    $base = $scheme . '://' . $host . $port;
+                    $metadata['image'] = $base . '/' . ltrim($imageUrl, '/');
                 } else {
-                    $image = $imageUrl;
+                    $metadata['image'] = $imageUrl;
                 }
             }
         }
         
-        // Actualizar metadatos
-        $metadata['title'] = $title;
-        $metadata['description'] = $description;
-        $metadata['image'] = $image;
-        
         // Determinar estado
-        $hasData = !empty($title) || !empty($description) || !empty($image);
-        
-        if ($hasData) {
+        if (!empty($metadata['title']) || !empty($metadata['description']) || !empty($metadata['image'])) {
             $metadata['status'] = 'success';
             $metadata['message'] = 'Metadatos obtenidos correctamente';
         } else {
             $metadata['status'] = 'warning';
-            $metadata['message'] = 'Se accedió al sitio pero no se encontraron metadatos';
+            $metadata['message'] = 'No se encontraron metadatos en el sitio destino';
         }
         
     } catch (Exception $e) {
-        // Capturar cualquier excepción y devolver error controlado
+        error_log('Error obteniendo metadatos: ' . $e->getMessage());
         $metadata['status'] = 'error';
-        $metadata['message'] = 'Error al procesar la URL';
+        $metadata['message'] = 'Error al acceder al sitio: ' . $e->getMessage();
     }
     
     return $metadata;
 }
 
-// Procesar solicitud AJAX para obtener metadatos
+// Procesar solicitud AJAX para obtener metadatos (DEBE estar ANTES de cualquier output)
 if (isset($_GET['action']) && $_GET['action'] === 'get_metadata' && isset($_GET['url'])) {
     $url = $_GET['url'];
     $metadata = getUrlMetadata($url);
@@ -155,7 +129,7 @@ if (empty($slug)) {
     exit;
 }
 
-// Cargar datos de forma segura
+// Cargar datos
 try {
     $data = loadData();
     $redirect = $data['redirects'][$slug] ?? null;
@@ -165,6 +139,7 @@ try {
         exit;
     }
 } catch (Exception $e) {
+    error_log('Error cargando datos: ' . $e->getMessage());
     $error = 'Error al cargar los datos del enlace';
 }
 
@@ -200,13 +175,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             // Valores por defecto
             if (empty($metatags['title'])) {
-                $metatags['title'] = !empty($description) ? $description : 'Enlace acortado';
+                $metatags['title'] = !empty($description) ? $description : 'Enlace acortado - ' . parse_url(APP_URL, PHP_URL_HOST);
             }
             if (empty($metatags['description'])) {
-                $metatags['description'] = !empty($description) ? $description : 'Enlace acortado';
+                $metatags['description'] = !empty($description) ? $description : 'Enlace acortado por ' . parse_url(APP_URL, PHP_URL_HOST);
             }
             if (empty($metatags['image'])) {
-                $metatags['image'] = '';
+                $metatags['image'] = APP_URL . '/preview-default.jpg';
             }
         }
 
@@ -233,9 +208,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     header('Location: dashboard.php?updated=1');
                     exit;
                 } else {
-                    $error = 'Error al guardar los cambios';
+                    $error = 'Error al guardar los cambios en la base de datos';
                 }
             } catch (Exception $e) {
+                error_log('Error guardando datos: ' . $e->getMessage());
                 $error = 'Error interno al guardar los cambios';
             }
         }
@@ -280,6 +256,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <i class="fas fa-exclamation-triangle"></i> <?= htmlspecialchars($error) ?>
                             </div>
                         <?php endif; ?>
+
+                        <?php if (isset($_GET['error'])): ?>
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-triangle"></i> Error al procesar la solicitud
+                            </div>
+                        <?php endif; ?>
                         
                         <form method="POST" action="" id="linkForm">
                             <div class="mb-3">
@@ -305,6 +287,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <div class="mb-3">
                                 <label class="form-label">Configuración de Preview</label>
                                 
+                                <!-- Mostrar metadatos actuales si existen -->
                                 <?php if ($hasExistingMetadata): ?>
                                 <div class="current-metadata mb-3">
                                     <h6><i class="fas fa-info-circle"></i> Metadatos Actuales:</h6>
@@ -321,7 +304,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <?php endif; ?>
                                 
                                 <div class="d-flex align-items-center gap-2 mb-2">
-                                    <button type="button" class="btn <?= $hasExistingMetadata ? 'btn-warning' : 'btn-primary' ?>" id="metadataBtn">
+                                    <button type="button" class="btn <?= $hasExistingMetadata ? 'btn-warning' : 'btn-danger' ?>" id="metadataBtn">
                                         <i class="fas fa-cloud-download-alt"></i> 
                                         <?= $hasExistingMetadata ? 'Actualizar Metadatos' : 'Obtener Metadatos Automáticamente' ?>
                                     </button>
@@ -339,6 +322,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                           placeholder="Descripción del enlace"><?= htmlspecialchars($redirect['description'] ?? '') ?></textarea>
                             </div>
                             
+                            <!-- Campos ocultos para metadatos -->
                             <?php if (ENABLE_PREVIEW): ?>
                             <input type="hidden" id="meta_title" name="meta_title" value="<?= htmlspecialchars($redirect['metatags']['title'] ?? '') ?>">
                             <input type="hidden" id="meta_description" name="meta_description" value="<?= htmlspecialchars($redirect['metatags']['description'] ?? '') ?>">
@@ -383,17 +367,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Buscando metadatos...';
             btn.disabled = true;
             btn.className = 'btn btn-secondary';
-            statusDiv.innerHTML = '<span class="text-info"><i class="fas fa-sync-alt"></i> Conectando con el sitio destino...</span>';
+            statusDiv.innerHTML = '<span class="text-info"><i class="fas fa-sync-alt"></i> Buscando metadatos en el sitio destino...</span>';
             
-            // Hacer la solicitud con timeout
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000);
-            
-            fetch('?action=get_metadata&url=' + encodeURIComponent(url), { 
-                signal: controller.signal 
-            })
+            // Hacer la solicitud
+            fetch('?action=get_metadata&url=' + encodeURI(url))
                 .then(response => {
-                    clearTimeout(timeoutId);
                     if (!response.ok) {
                         throw new Error('Error del servidor: ' + response.status);
                     }
@@ -439,16 +417,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 })
                 .catch(error => {
-                    clearTimeout(timeoutId);
                     console.error('Error en fetch:', error);
-                    
-                    if (error.name === 'AbortError') {
-                        btn.className = 'btn btn-danger';
-                        statusDiv.innerHTML = '<span class="text-danger"><i class="fas fa-clock"></i> Tiempo de espera agotado (10 segundos)</span>';
-                    } else {
-                        btn.className = 'btn btn-danger';
-                        statusDiv.innerHTML = '<span class="text-danger"><i class="fas fa-times-circle"></i> Error de conexión: ' + error.message + '</span>';
-                    }
+                    btn.className = 'btn btn-danger';
+                    statusDiv.innerHTML = '<span class="text-danger"><i class="fas fa-times-circle"></i> Error de conexión: ' + error.message + '</span>';
                 })
                 .finally(() => {
                     // Restaurar botón
@@ -462,11 +433,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             const statusDiv = document.getElementById('metadataStatus');
             const hasExistingMetadata = <?php echo $hasExistingMetadata ? 'true' : 'false'; ?>;
             
-            btn.className = hasExistingMetadata ? 'btn btn-warning' : 'btn btn-primary';
+            btn.className = hasExistingMetadata ? 'btn btn-warning' : 'btn btn-danger';
             btn.innerHTML = '<i class="fas fa-cloud-download-alt"></i> ' + (hasExistingMetadata ? 'Actualizar Metadatos' : 'Obtener Metadatos Automáticamente');
             statusDiv.innerHTML = '';
         });
-        <?php endif; ?>
 
         // Validar slug en tiempo real
         document.getElementById('slug').addEventListener('input', function() {
@@ -475,6 +445,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 this.value = this.value.substring(0, 20);
             }
         });
+        <?php endif; ?>
 
         // Validación del formulario
         document.getElementById('linkForm').addEventListener('submit', function(e) {
